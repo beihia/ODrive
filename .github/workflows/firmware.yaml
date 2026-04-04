@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master, devel]
   push:
-    branches: [master, devel]
+    branches: [master, devel, ci-v3.6-56V]
     tags: ['fw-v*']
 
 jobs:

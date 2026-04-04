@@ -80,7 +80,8 @@ jobs:
           # See https://github.com/osxfuse/osxfuse/issues/801#issuecomment-833419942
           brew install --cask macfuse
           brew install gromgit/fuse/tup-mac
-          pip3 install PyYAML Jinja2 jsonschema
+          python3 -m pip install --user PyYAML Jinja2 jsonschema
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> $GITHUB_ENV
 
         
       - name: Cache chocolatey

@@ -535,6 +535,7 @@ bool Encoder::abs_spi_start_transaction() {
             spi_task_.on_complete = [](void* ctx, bool success) { ((Encoder*)ctx)->abs_spi_cb(success); };
             spi_task_.on_complete_ctx = this;
             spi_task_.next = nullptr;
+            abs_spi_transaction_pending_ = true;
             
             spi_arbiter_->transfer_async(&spi_task_);
         } else {
@@ -561,6 +562,8 @@ uint8_t cui_parity(uint16_t v) {
 
 void Encoder::abs_spi_cb(bool success) {
     uint16_t pos;
+
+    abs_spi_transaction_pending_ = false;
 
     if (!success) {
         goto done;
@@ -750,11 +753,14 @@ bool Encoder::update() {
         case MODE_SPI_ABS_AEAT:
         case MODE_SPI_ABS_MA732: {
             if (abs_spi_pos_updated_ == false) {
-                // Low pass filter the error
-                spi_error_rate_ += current_meas_period * (1.0f - spi_error_rate_);
-                if (spi_error_rate_ > 0.05f) {
-                    set_error(ERROR_ABS_SPI_COM_FAIL);
-                    return false;
+                // Don't count a transfer as failed while its DMA transaction is still in flight.
+                if (!abs_spi_transaction_pending_) {
+                    // Low pass filter the error
+                    spi_error_rate_ += current_meas_period * (1.0f - spi_error_rate_);
+                    if (spi_error_rate_ > 0.05f) {
+                        set_error(ERROR_ABS_SPI_COM_FAIL);
+                        return false;
+                    }
                 }
             } else {
                 // Low pass filter the error

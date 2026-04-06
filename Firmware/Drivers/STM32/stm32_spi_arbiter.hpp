@@ -84,14 +84,6 @@ public:
      */
     void on_complete();
 
-    /**
-     * @brief Executes a blocking polled transfer without DMA.
-     *
-     * This is intended for short transfers from interrupt context where the
-     * caller needs the response before returning.
-     */
-    bool transfer_polled(SPI_InitTypeDef config, Stm32Gpio ncs_gpio, const uint8_t* tx_buf, uint8_t* rx_buf, size_t length, uint32_t timeout_ms);
-
 private:
     bool start();
     

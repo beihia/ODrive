@@ -111,41 +111,6 @@ bool Stm32SpiArbiter::transfer(SPI_InitTypeDef config, Stm32Gpio ncs_gpio, const
     return result;
 }
 
-bool Stm32SpiArbiter::transfer_polled(SPI_InitTypeDef config, Stm32Gpio ncs_gpio, const uint8_t* tx_buf, uint8_t* rx_buf, size_t length, uint32_t timeout_ms) {
-    bool idle = false;
-    CRITICAL_SECTION() {
-        idle = (task_list_ == nullptr);
-    }
-
-    if (!idle || (hspi_->State != HAL_SPI_STATE_READY)) {
-        return false;
-    }
-
-    if (!equals(config, hspi_->Init)) {
-        HAL_SPI_DeInit(hspi_);
-        hspi_->Init = config;
-        HAL_SPI_Init(hspi_);
-        __HAL_SPI_ENABLE(hspi_);
-    }
-
-    ncs_gpio.write(false);
-    for (volatile int i = 0; i < 64; ++i) {
-        __NOP();
-    }
-
-    HAL_StatusTypeDef status = HAL_ERROR;
-    if (tx_buf && rx_buf) {
-        status = HAL_SPI_TransmitReceive(hspi_, const_cast<uint8_t*>(tx_buf), rx_buf, length, timeout_ms);
-    } else if (tx_buf) {
-        status = HAL_SPI_Transmit(hspi_, const_cast<uint8_t*>(tx_buf), length, timeout_ms);
-    } else if (rx_buf) {
-        status = HAL_SPI_Receive(hspi_, rx_buf, length, timeout_ms);
-    }
-
-    ncs_gpio.write(true);
-    return status == HAL_OK;
-}
-
 void Stm32SpiArbiter::on_complete() {
     if (!task_list_) {
         return; // this should not happen

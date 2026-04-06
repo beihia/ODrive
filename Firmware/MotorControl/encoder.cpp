@@ -490,11 +490,6 @@ void Encoder::sample_now() {
         } break;
 
         case MODE_SPI_ABS_AMS:
-        {
-            abs_spi_start_polled_transaction();
-            // Do nothing
-        } break;
-
         case MODE_SPI_ABS_CUI:
         case MODE_SPI_ABS_AEAT:
         case MODE_SPI_ABS_RLS:
@@ -549,21 +544,6 @@ bool Encoder::abs_spi_start_transaction() {
     return true;
 }
 
-bool Encoder::abs_spi_start_polled_transaction() {
-    if (!(mode_ & MODE_FLAG_ABS)) {
-        return false;
-    }
-
-    return abs_spi_process_response(
-        spi_arbiter_->transfer_polled(
-            spi_task_.config,
-            abs_spi_cs_gpio_,
-            reinterpret_cast<uint8_t*>(abs_spi_dma_tx_),
-            reinterpret_cast<uint8_t*>(abs_spi_dma_rx_),
-            1,
-            1));
-}
-
 uint8_t ams_parity(uint16_t v) {
     v ^= v >> 8;
     v ^= v >> 4;
@@ -579,11 +559,11 @@ uint8_t cui_parity(uint16_t v) {
     return ~v & 3;
 }
 
-bool Encoder::abs_spi_process_response(bool success) {
+void Encoder::abs_spi_cb(bool success) {
     uint16_t pos;
 
     if (!success) {
-        return false;
+        goto done;
     }
 
     switch (mode_) {
@@ -608,7 +588,7 @@ bool Encoder::abs_spi_process_response(bool success) {
                 pos = rawValSwapped & 0x3fff;
             } else {
                 // 两个都不通过，当做错误处理
-                return false;
+                goto done;
             }
         } break;
 
@@ -616,7 +596,7 @@ bool Encoder::abs_spi_process_response(bool success) {
             uint16_t rawVal = abs_spi_dma_rx_[0];
             // check if parity is correct
             if (cui_parity(rawVal)) {
-                return false;
+                goto done;
             }
             pos = rawVal & 0x3fff;
         } break;
@@ -633,7 +613,7 @@ bool Encoder::abs_spi_process_response(bool success) {
 
         default: {
            set_error(ERROR_UNSUPPORTED_ENCODER_MODE);
-           return false;
+           goto done;
         } break;
     }
 
@@ -643,11 +623,7 @@ bool Encoder::abs_spi_process_response(bool success) {
         is_ready_ = true;
     }
 
-    return true;
-}
-
-void Encoder::abs_spi_cb(bool success) {
-    abs_spi_process_response(success);
+done:
     Stm32SpiArbiter::release_task(&spi_task_);
 }
 

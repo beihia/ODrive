@@ -44,7 +44,7 @@ void Encoder::setup() {
         .Direction = SPI_DIRECTION_2LINES,
         .DataSize = SPI_DATASIZE_16BIT,
         .CLKPolarity = (mode_ == MODE_SPI_ABS_AEAT || mode_ == MODE_SPI_ABS_MA732) ? SPI_POLARITY_HIGH : SPI_POLARITY_LOW,
-        .CLKPhase = SPI_PHASE_2EDGE,
+        .CLKPhase = (mode_ == MODE_SPI_ABS_AMS) ? SPI_PHASE_1EDGE : SPI_PHASE_2EDGE,
         .NSS = SPI_NSS_SOFT,
         .BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128,  // 降低到 ~0.65MHz (从 ~5.25MHz)
         .FirstBit = SPI_FIRSTBIT_MSB,

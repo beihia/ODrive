@@ -569,6 +569,11 @@ void Encoder::abs_spi_cb(bool success) {
     switch (mode_) {
         case MODE_SPI_ABS_AMS: {
             uint16_t rawVal = abs_spi_dma_rx_[0];
+
+            // Some AS5048A setups appear to lose the first returned bit, which is
+            // the parity bit on AMS frames. Reconstruct it from the remaining bits
+            // before validating the frame.
+            rawVal = (rawVal & 0x7fff) | (ams_parity(rawVal) << 15);
             
             // 尝试字节交换以修复SPI字节序问题
             // 如果当前字节序导致奇偶校验失败，则进行字节反转

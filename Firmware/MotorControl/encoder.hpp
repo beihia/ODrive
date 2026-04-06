@@ -134,6 +134,8 @@ public:
     float sincos_sample_c_ = 0.0f;
 
     bool abs_spi_start_transaction();
+    bool abs_spi_start_polled_transaction();
+    bool abs_spi_process_response(bool success);
     void abs_spi_cb(bool success);
     void abs_spi_cs_pin_init();
     bool abs_spi_pos_updated_ = false;

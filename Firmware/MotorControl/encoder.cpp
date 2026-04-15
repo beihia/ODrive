@@ -44,9 +44,9 @@ void Encoder::setup() {
         .Direction = SPI_DIRECTION_2LINES,
         .DataSize = SPI_DATASIZE_16BIT,
         .CLKPolarity = (mode_ == MODE_SPI_ABS_AEAT || mode_ == MODE_SPI_ABS_MA732) ? SPI_POLARITY_HIGH : SPI_POLARITY_LOW,
-        .CLKPhase = (mode_ == MODE_SPI_ABS_AMS) ? SPI_PHASE_1EDGE : SPI_PHASE_2EDGE,
+        .CLKPhase = SPI_PHASE_2EDGE,
         .NSS = SPI_NSS_SOFT,
-        .BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128,  // 降低到 ~0.65MHz (从 ~5.25MHz)
+        .BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32,
         .FirstBit = SPI_FIRSTBIT_MSB,
         .TIMode = SPI_TIMODE_DISABLE,
         .CRCCalculation = SPI_CRCCALCULATION_DISABLE,
@@ -572,27 +572,10 @@ void Encoder::abs_spi_cb(bool success) {
     switch (mode_) {
         case MODE_SPI_ABS_AMS: {
             uint16_t rawVal = abs_spi_dma_rx_[0];
-
-            // Some AS5048A setups appear to lose the first returned bit, which is
-            // the parity bit on AMS frames. Reconstruct it from the remaining bits
-            // before validating the frame.
-            rawVal = (rawVal & 0x7fff) | (ams_parity(rawVal) << 15);
-            
-            // 尝试字节交换以修复SPI字节序问题
-            // 如果当前字节序导致奇偶校验失败，则进行字节反转
-            uint16_t rawValSwapped = ((rawVal & 0xFF) << 8) | ((rawVal >> 8) & 0xFF);
-            
-            // 优先使用原始值，如果失败则尝试字节交换的值
-            if (!(ams_parity(rawVal) || ((rawVal >> 14) & 1))) {
-                // 原始值校验通过
-                pos = rawVal & 0x3fff;
-            } else if (!(ams_parity(rawValSwapped) || ((rawValSwapped >> 14) & 1))) {
-                // 字节交换后的值校验通过
-                pos = rawValSwapped & 0x3fff;
-            } else {
-                // 两个都不通过，当做错误处理
+            if (ams_parity(rawVal) || ((rawVal >> 14) & 1)) {
                 goto done;
             }
+            pos = rawVal & 0x3fff;
         } break;
 
         case MODE_SPI_ABS_CUI: {

@@ -572,10 +572,21 @@ void Encoder::abs_spi_cb(bool success) {
     switch (mode_) {
         case MODE_SPI_ABS_AMS: {
             uint16_t rawVal = abs_spi_dma_rx_[0];
-
             uint16_t rawValSwapped = ((rawVal & 0xFF) << 8) | ((rawVal >> 8) & 0xFF);
 
-            if (!(ams_parity(rawVal) || ((rawVal >> 14) & 1))) {
+            // Some AS5048A setups appear to miss the first returned bit.
+            // Rebuild candidate frames by shifting right and recomputing parity.
+            uint16_t rawValShifted = rawVal >> 1;
+            rawValShifted = (rawValShifted & 0x7fff) | (ams_parity(rawValShifted) << 15);
+
+            uint16_t rawValSwappedShifted = rawValSwapped >> 1;
+            rawValSwappedShifted = (rawValSwappedShifted & 0x7fff) | (ams_parity(rawValSwappedShifted) << 15);
+
+            if (!(ams_parity(rawValShifted) || ((rawValShifted >> 14) & 1))) {
+                pos = rawValShifted & 0x3fff;
+            } else if (!(ams_parity(rawValSwappedShifted) || ((rawValSwappedShifted >> 14) & 1))) {
+                pos = rawValSwappedShifted & 0x3fff;
+            } else if (!(ams_parity(rawVal) || ((rawVal >> 14) & 1))) {
                 pos = rawVal & 0x3fff;
             } else if (!(ams_parity(rawValSwapped) || ((rawValSwapped >> 14) & 1))) {
                 pos = rawValSwapped & 0x3fff;

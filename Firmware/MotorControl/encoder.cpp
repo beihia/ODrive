@@ -44,9 +44,9 @@ void Encoder::setup() {
         .Direction = SPI_DIRECTION_2LINES,
         .DataSize = SPI_DATASIZE_16BIT,
         .CLKPolarity = (mode_ == MODE_SPI_ABS_AEAT || mode_ == MODE_SPI_ABS_MA732) ? SPI_POLARITY_HIGH : SPI_POLARITY_LOW,
-        .CLKPhase = SPI_PHASE_2EDGE,
+        .CLKPhase = (mode_ == MODE_SPI_ABS_AMS) ? SPI_PHASE_1EDGE : SPI_PHASE_2EDGE,
         .NSS = SPI_NSS_SOFT,
-        .BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32,
+        .BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128,
         .FirstBit = SPI_FIRSTBIT_MSB,
         .TIMode = SPI_TIMODE_DISABLE,
         .CRCCalculation = SPI_CRCCALCULATION_DISABLE,
@@ -572,10 +572,16 @@ void Encoder::abs_spi_cb(bool success) {
     switch (mode_) {
         case MODE_SPI_ABS_AMS: {
             uint16_t rawVal = abs_spi_dma_rx_[0];
-            if (ams_parity(rawVal) || ((rawVal >> 14) & 1)) {
+
+            uint16_t rawValSwapped = ((rawVal & 0xFF) << 8) | ((rawVal >> 8) & 0xFF);
+
+            if (!(ams_parity(rawVal) || ((rawVal >> 14) & 1))) {
+                pos = rawVal & 0x3fff;
+            } else if (!(ams_parity(rawValSwapped) || ((rawValSwapped >> 14) & 1))) {
+                pos = rawValSwapped & 0x3fff;
+            } else {
                 goto done;
             }
-            pos = rawVal & 0x3fff;
         } break;
 
         case MODE_SPI_ABS_CUI: {

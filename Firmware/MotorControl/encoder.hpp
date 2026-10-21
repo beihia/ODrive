@@ -158,6 +158,8 @@ public:
     uint32_t dbg_flag_fail_ = 0;
     uint32_t dbg_ok_ = 0;
     uint32_t dbg_jump_reject_ = 0;  // frames dropped by the plausibility filter
+    uint32_t dbg_jump_resync_ = 0;  // filter re-seeded after a sustained jump
+    uint8_t abs_spi_reject_run_ = 0;
     uint16_t abs_spi_last_pos_ = 0;
     bool abs_spi_have_last_pos_ = false;
 

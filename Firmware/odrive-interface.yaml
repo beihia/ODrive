@@ -1309,6 +1309,7 @@ interfaces:
       dbg_flag_fail: {type: readonly uint32, c_getter: dbg_flag_fail_}
       dbg_ok: {type: readonly uint32, c_getter: dbg_ok_}
       dbg_jump_reject: {type: readonly uint32, c_getter: dbg_jump_reject_}
+      dbg_jump_resync: {type: readonly uint32, c_getter: dbg_jump_resync_}
       config:
         c_is_class: False
         attributes:

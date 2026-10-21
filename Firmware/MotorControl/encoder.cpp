@@ -613,7 +613,18 @@ void Encoder::abs_spi_cb(bool success) {
                 }
                 if (std::abs(delta) > 64) {
                     dbg_jump_reject_++;
-                    goto done;
+                    // Isolated corrupted frames are dropped, but a sustained jump
+                    // means the position really changed (encoder re-mounted, or a
+                    // different motor). Don't lock the filter out forever: after
+                    // 8 consecutive rejects (1 ms at 8 kHz) resync to the new
+                    // position instead.
+                    if (++abs_spi_reject_run_ < 8) {
+                        goto done;
+                    }
+                    dbg_jump_resync_++;
+                    abs_spi_reject_run_ = 0;
+                } else {
+                    abs_spi_reject_run_ = 0;
                 }
             }
             abs_spi_last_pos_ = pos;
